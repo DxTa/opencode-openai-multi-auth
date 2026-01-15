@@ -56,8 +56,14 @@ The main entry point orchestrates a **7-step fetch flow**:
 
 **Core Plugin** (`index.ts`)
 - Plugin definition and main fetch orchestration
-- OAuth loader (extracts ChatGPT account ID from JWT)
+- Multi-account coordination via AccountManager
+- Toast notifications for account switches/rate limits
 - Configuration loading and CODEX_MODE determination
+
+**Account Management** (`lib/accounts/`)
+- `manager.ts`: AccountManager class - handles multi-account rotation, rate limit tracking, token refresh
+- `types.ts`: ManagedAccount, AccountsStorage, MultiAccountConfig interfaces
+- `index.ts`: Module exports
 
 **Authentication** (`lib/auth/`)
 - `auth.ts`: OAuth flow (PKCE, token exchange, JWT decoding, refresh)
@@ -174,6 +180,7 @@ This plugin **intentionally differs from opencode defaults** because it accesses
 ## File Paths & Locations
 
 - **Plugin config**: `~/.opencode/openai-codex-auth-config.json`
+- **Accounts storage**: `~/.config/opencode/openai-accounts.json`
 - **Cache dir**: `~/.opencode/cache/`
   - `codex-instructions.md` (Codex CLI instructions from GitHub)
   - `codex-instructions-meta.json` (ETag + release tag for Codex instructions)
@@ -186,6 +193,10 @@ This plugin **intentionally differs from opencode defaults** because it accesses
 
 - `CODEX_MODE`: Override config file (1=enable, 0=disable)
 - `ENABLE_PLUGIN_REQUEST_LOGGING`: Enable detailed request logging (1=enable)
+- `OPENCODE_OPENAI_QUIET`: Disable toast notifications (1=enable)
+- `OPENCODE_OPENAI_DEBUG`: Enable debug logging for multi-account (1=enable)
+- `OPENCODE_OPENAI_STRATEGY`: Account selection strategy (`sticky`, `round-robin`, `hybrid`)
+- `OPENCODE_OPENAI_PID_OFFSET`: Enable PID-based account offset (1=enable)
 
 ## TypeScript Configuration
 

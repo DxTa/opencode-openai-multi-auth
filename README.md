@@ -6,6 +6,9 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/zenysTX?style=social)](https://x.com/zenysTX)
 
 
+
+
+
 [![Twitter Follow](https://img.shields.io/twitter/follow/nummanali?style=social)](https://x.com/nummanali)
 [![npm version](https://img.shields.io/npm/v/opencode-openai-multi-auth.svg)](https://www.npmjs.com/package/opencode-openai-multi-auth)
 [![Tests](https://github.com/dkraemerwork/opencode-openai-multi-auth/actions/workflows/ci.yml/badge.svg)](https://github.com/dkraemerwork/opencode-openai-multi-auth/actions)
@@ -82,12 +85,45 @@ Minimal configs are not supported for GPT‑5.x; use the full configs above.
 
 ## ✅ Features
 
+- **Multi-account support** with automatic rotation on rate limits
 - ChatGPT Plus/Pro OAuth authentication (official flow)
-- Multi-account support with automatic rotation on rate limits
 - 22 model presets across GPT‑5.2 / GPT‑5.2 Codex / GPT‑5.1 families
 - Variant system support (v1.0.210+) + legacy presets
 - Multimodal input enabled for all models
+- Toast notifications for account switches and rate limits
 - Usage‑aware errors + automatic token refresh
+
+---
+
+## 🔄 Multi-Account Support
+
+Add multiple ChatGPT accounts and automatically rotate between them when rate limited:
+
+```bash
+# Add first account
+opencode auth login
+# Select "ChatGPT Plus/Pro (Codex Subscription)"
+
+# Add additional accounts
+opencode auth login
+# Select "Add Another OpenAI Account"
+```
+
+**Features:**
+- Automatic rotation when an account hits rate limits
+- Per-model rate limit tracking
+- Toast notifications showing active account
+- Seamless failover between accounts
+- Imports existing tokens from OpenCode auth
+
+**Environment Variables:**
+| Variable | Description |
+|----------|-------------|
+| `OPENCODE_OPENAI_QUIET=1` | Disable toast notifications |
+| `OPENCODE_OPENAI_DEBUG=1` | Enable debug logging |
+| `OPENCODE_OPENAI_STRATEGY` | Account selection: `sticky` (default), `round-robin`, `hybrid` |
+
+**Accounts storage:** `~/.config/opencode/openai-accounts.json`
 
 ---
 
