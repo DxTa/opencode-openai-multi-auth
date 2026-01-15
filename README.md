@@ -51,15 +51,15 @@ opencode run "write hello world to test.txt" --model=openai/gpt-5.2 --variant=me
 Legacy OpenCode (v1.0.209 and below):
 
 ```bash
-npx -y opencode-openai-multi-auth@latest --legacy
+npx -y @zenystx-org/opencode-openai-multi-auth@latest --legacy
 opencode run "write hello world to test.txt" --model=openai/gpt-5.2-medium
 ```
 
 Uninstall:
 
 ```bash
-npx -y opencode-openai-multi-auth@latest --uninstall
-npx -y opencode-openai-multi-auth@latest --uninstall --all
+npx -y @zenystx-org/opencode-openai-multi-auth@latest --uninstall
+npx -y @zenystx-org/opencode-openai-multi-auth@latest --uninstall --all
 ```
 
 ---
