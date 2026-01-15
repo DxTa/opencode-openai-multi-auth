@@ -141,3 +141,5 @@ opencode auth login
 This plugin is for **personal development use** with your own ChatGPT Plus/Pro subscriptions.
 
 **Built for developers who value simplicity.**
+
+## Force Build 1
