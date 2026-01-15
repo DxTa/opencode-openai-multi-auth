@@ -3,49 +3,53 @@ name: Release
 on:
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'CHANGELOG.md'
-  pull_request:
-    branches: [main]
-    types: [closed]
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests before release'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
 
 jobs:
-  validate:
-    name: Validate Pull Request
+  check-version:
+    name: Check Version Change
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.check.outputs.version }}
     steps:
-      - name: Check if from PR
-        run: |
-          if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
-            echo "Only merged PRs can trigger releases"
-            exit 1
-          fi
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Validate branch
+      - name: Check if version changed
+        id: check
         run: |
-          if [ "${{ github.event.pull_request.base.ref }}" != "main" ]; then
-            echo "PR must target main branch"
-            exit 1
+          # Get current version from package.json
+          CURRENT_VERSION=$(jq -r '.version' package.json)
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Check if tag already exists
+          if git ls-remote --tags origin | grep -q "refs/tags/v$CURRENT_VERSION"; then
+            echo "Tag v$CURRENT_VERSION already exists, skipping release"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version detected: $CURRENT_VERSION"
+            echo "should_release=true" >> $GITHUB_OUTPUT
           fi
+          
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Check for direct push
-        run: |
-          if [ "${{ github.event_name }}" == "push" ] && [ "${{ github.event.forced }}" == "false" ]; then
-            echo "Direct pushes are blocked, use PR instead"
-            exit 1
-          fi
-
-  release:
-    name: Create Release
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
-    needs: validate
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true' && github.event.inputs.skip_tests != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -59,22 +63,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+  release:
+    name: Create Release & Publish
+    runs-on: ubuntu-latest
+    needs: [check-version, test]
+    if: |
+      always() &&
+      needs.check-version.outputs.should_release == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build
         run: npm run build
 
-      - name: Create tag and release
-        id: release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v${{ needs.check-version.outputs.version }}
+          name: v${{ needs.check-version.outputs.version }}
           draft: false
           generate_release_notes: true
-          files: |
-            dist/**
-          tag_name: v${{ github.run_number }}
-          tag_commitish: ${{ github.sha }}
 
       - name: Publish to npm
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish
