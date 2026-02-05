@@ -15,6 +15,7 @@ export interface ManagedAccount {
   globalRateLimitReset?: number;
   consecutiveFailures: number;
   isRefreshing?: boolean;
+  refreshPromise?: Promise<boolean>;
   lastRefreshError?: string;
 }
 

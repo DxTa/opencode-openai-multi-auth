@@ -85,6 +85,7 @@ export interface TokenSuccess {
  */
 export interface TokenFailure {
 	type: "failed";
+	code?: string;
 }
 
 /**

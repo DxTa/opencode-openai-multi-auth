@@ -402,31 +402,46 @@ export class AccountManager {
       return true;
     }
 
-    if (account.isRefreshing) {
-      return !!account.access;
+    if (account.isRefreshing && account.refreshPromise) {
+      return account.refreshPromise;
     }
 
     account.isRefreshing = true;
+    account.refreshPromise = (async () => {
+      try {
+        const result = await refreshAccessToken(account.parts.refreshToken);
 
-    try {
-      const result = await refreshAccessToken(account.parts.refreshToken);
+        if (result.type === "success") {
+          await this.updateAccountTokens(
+            account,
+            result.access,
+            result.refresh,
+            result.expires,
+          );
+          return true;
+        }
 
-      if (result.type === "success") {
-        await this.updateAccountTokens(
-          account,
-          result.access,
-          result.refresh,
-          result.expires,
-        );
-        return true;
+        const errorCode = result.code;
+        if (errorCode === "refresh_token_reused" || errorCode === "invalid_grant") {
+          this.markRefreshFailed(account, `Token invalid: ${errorCode}. Please re-authenticate.`);
+          account.consecutiveFailures = 10;
+          if (!this.config.quietMode) {
+            console.error(`[openai-multi-auth] Account ${account.email || account.index} needs re-authentication (${errorCode})`);
+          }
+        } else {
+          this.markRefreshFailed(account, "Token refresh failed");
+        }
+        return false;
+      } catch (err) {
+        this.markRefreshFailed(account, String(err));
+        return false;
+      } finally {
+        account.isRefreshing = false;
+        account.refreshPromise = undefined;
       }
+    })();
 
-      this.markRefreshFailed(account, "Token refresh failed");
-      return false;
-    } catch (err) {
-      this.markRefreshFailed(account, String(err));
-      return false;
-    }
+    return account.refreshPromise;
   }
 
   getActiveAccount(): ManagedAccount | null {
