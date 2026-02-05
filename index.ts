@@ -126,6 +126,27 @@ export const OpenAIAuthPlugin: Plugin = async ({ client }: PluginInput) => {
     } catch {}
   };
 
+  const showModelRetryToast = async (
+    model: string,
+    failedAccount: ManagedAccount,
+    nextAccount: ManagedAccount,
+    triedCount: number,
+    totalAccounts: number,
+  ) => {
+    if (quietMode) return;
+    const failedLabel = failedAccount.email || `Account ${failedAccount.index + 1}`;
+    const nextLabel = nextAccount.email || `Account ${nextAccount.index + 1}`;
+    const nextPlan = nextAccount.planType ? ` [${nextAccount.planType}]` : "";
+    try {
+      await client.tui.showToast({
+        body: {
+          message: `${model} not on ${failedLabel}, trying ${nextLabel}${nextPlan} (${triedCount}/${totalAccounts})`,
+          variant: "info",
+        },
+      });
+    } catch {}
+  };
+
   const showModelFallbackToast = async (
     originalModel: string,
     fallbackModel: string,
@@ -442,6 +463,25 @@ export const OpenAIAuthPlugin: Plugin = async ({ client }: PluginInput) => {
               const errorBody = await cloned.json() as { detail?: string; error?: { message?: string } };
               const detail = errorBody?.detail || errorBody?.error?.message || "";
               
+              // Always log 400 errors to file for debugging
+              const fs = await import("node:fs");
+              const path = await import("node:path");
+              const os = await import("node:os");
+              const logDir = path.join(os.homedir(), ".opencode", "logs", "codex-plugin");
+              fs.mkdirSync(logDir, { recursive: true });
+              fs.writeFileSync(path.join(logDir, "last-400-error.json"), JSON.stringify({ 
+                timestamp: new Date().toISOString(),
+                model: transformation?.body.model,
+                status: response.status, 
+                errorBody,
+                detail,
+                accountIndex: account.index,
+                accountEmail: account.email,
+                accountPlanType: account.planType,
+                triedAccounts: Array.from(triedAccountIndices),
+                totalAccounts: accountManager.getAccountCount(),
+              }, null, 2));
+              
               // Log the error for debugging
               if (debugMode) {
                 console.log(`[openai-multi-auth] 400 error for model ${transformation?.body.model} on account ${account.email || account.index} [${account.planType}]: ${JSON.stringify(errorBody)}`);
@@ -457,7 +497,13 @@ export const OpenAIAuthPlugin: Plugin = async ({ client }: PluginInput) => {
                   if (debugMode) {
                     console.log(`[openai-multi-auth] Model ${requestedModel} not supported on ${account.email || account.index} [${account.planType}], trying ${nextAccount.email || nextAccount.index} [${nextAccount.planType}]`);
                   }
-                  await showAccountSwitchToast(account, nextAccount);
+                  await showModelRetryToast(
+                    requestedModel,
+                    account,
+                    nextAccount,
+                    triedAccountIndices.size,
+                    accountManager.getAccountCount(),
+                  );
                   return executeRequest(nextAccount, input, init, retryCount, triedAccountIndices);
                 }
                 
