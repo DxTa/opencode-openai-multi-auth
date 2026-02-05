@@ -85,4 +85,34 @@ describe("CodexStatusManager", () => {
     expect(lines.some((line) => line.includes("Weekly limit:") && line.includes("75% left"))).toBe(true);
     expect(lines.some((line) => line.includes("Credits") && line.includes("unlimited"))).toBe(true);
   });
+
+  it("keeps distinct snapshots for minimal accounts", async () => {
+    const manager = new CodexStatusManager();
+    const accountA = {
+      index: 0,
+      email: "alpha@example.com",
+      addedAt: 0,
+      parts: { refreshToken: "" },
+      rateLimitResets: {},
+      consecutiveFailures: 0,
+    };
+    const accountB = {
+      index: 1,
+      email: "beta@example.com",
+      addedAt: 0,
+      parts: { refreshToken: "" },
+      rateLimitResets: {},
+      consecutiveFailures: 0,
+    };
+
+    await manager.updateFromHeaders(accountA as any, {
+      "x-codex-primary-used-percent": "10",
+    });
+    await manager.updateFromHeaders(accountB as any, {
+      "x-codex-primary-used-percent": "20",
+    });
+
+    const snapshots = await manager.getAllSnapshots();
+    expect(snapshots.length).toBe(2);
+  });
 });

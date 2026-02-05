@@ -327,7 +327,11 @@ export const OpenAIAuthPlugin: Plugin = async ({ client }: PluginInput) => {
               headersObj[key] = value;
             });
             await codexStatus.updateFromHeaders(account, headersObj);
-          } catch {}
+          } catch (error) {
+            if (debugMode) {
+              console.log("[openai-multi-auth] codex-status update failed", error);
+            }
+          }
 
           logRequest(LOG_STAGES.RESPONSE, {
             status: response.status,

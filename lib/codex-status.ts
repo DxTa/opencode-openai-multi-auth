@@ -84,6 +84,16 @@ export class CodexStatusManager {
         .update(account.parts.refreshToken)
         .digest("hex");
     }
+    if (account.email) {
+      return `email:${account.email.toLowerCase()}`;
+    }
+    if (account.accountId) {
+      return `account:${account.accountId}`;
+    }
+    const index = (account as { index?: number }).index;
+    if (typeof index === "number") {
+      return `index:${index}`;
+    }
     return "unknown";
   }
 
