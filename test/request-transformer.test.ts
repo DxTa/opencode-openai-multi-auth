@@ -39,10 +39,16 @@ describe('Request Transformer Module', () => {
 			expect(normalizeModel('unknown-model')).toBe('gpt-5.1');
 		});
 
-		it('should pass through unknown gpt models', async () => {
-			expect(normalizeModel('gpt-4')).toBe('gpt-4');
+		it('should normalize gpt-5.3 models correctly', async () => {
 			expect(normalizeModel('gpt-5.3')).toBe('gpt-5.3');
 			expect(normalizeModel('gpt-5.3-codex')).toBe('gpt-5.3-codex');
+			expect(normalizeModel('gpt-5.3-codex-max')).toBe('gpt-5.3-codex-max');
+			expect(normalizeModel('gpt-5.3-codex-mini')).toBe('gpt-5.3-codex-mini');
+		});
+
+		it('should pass through explicit gpt-* model IDs', async () => {
+			expect(normalizeModel('gpt-4')).toBe('gpt-4');
+			expect(normalizeModel('gpt-4o')).toBe('gpt-4o');
 		});
 
 		it('should return gpt-5.1 for undefined', async () => {
@@ -618,11 +624,9 @@ describe('Request Transformer Module', () => {
 			it('preserves existing prompt_cache_key passed by host (OpenCode)', async () => {
 				const body: RequestBody = {
 					model: 'gpt-5-codex',
-					input: [],
-					// Host-provided key (OpenCode session id)
-					// @ts-expect-error extra field allowed
-					prompt_cache_key: 'ses_host_key_123',
-				};
+				input: [],
+				prompt_cache_key: 'ses_host_key_123',
+			};
 				const result: any = await transformRequestBody(body, codexInstructions);
 				expect(result.prompt_cache_key).toBe('ses_host_key_123');
 			});

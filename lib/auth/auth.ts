@@ -138,6 +138,13 @@ export async function refreshAccessToken(refreshToken: string): Promise<TokenRes
 				response.status,
 				text,
 			);
+			try {
+				const errorData = JSON.parse(text) as { error?: { code?: string } };
+				if (errorData?.error?.code === "refresh_token_reused" || 
+				    errorData?.error?.code === "invalid_grant") {
+					return { type: "failed", code: errorData.error.code };
+				}
+			} catch {}
 			return { type: "failed" };
 		}
 
