@@ -139,6 +139,12 @@ rm ~/.config/opencode/openai-accounts.json
 cat ~/.config/opencode/openai-accounts.json | jq '.accounts[] | {email, rateLimitResets}'
 ```
 
+### Slash Commands (TUI)
+```text
+/codex-status
+```
+Shows usage status for all configured accounts.
+
 ---
 
 ## Models
