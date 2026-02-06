@@ -84,17 +84,12 @@ export function extractRequestUrl(input: Request | string | URL): string {
 
 /**
  * Rewrites OpenAI API URLs to Codex backend URLs
- * Adds client_version query parameter to match Codex CLI behavior
  * @param url - Original URL
- * @returns Rewritten URL for Codex backend with client_version
+ * @returns Rewritten URL for Codex backend
  */
 export function rewriteUrlForCodex(url: string): string {
-  const rewrittenUrl = url.replace(
-    URL_PATHS.RESPONSES,
-    URL_PATHS.CODEX_RESPONSES,
-  );
-  const separator = rewrittenUrl.includes("?") ? "&" : "?";
-  return `${rewrittenUrl}${separator}client_version=${PLUGIN_VERSION}`;
+  // Must use /codex/responses endpoint to access Codex models
+  return url.replace(URL_PATHS.RESPONSES, URL_PATHS.CODEX_RESPONSES);
 }
 
 /**
@@ -208,9 +203,7 @@ export function createCodexHeaders(
   headers.set("Authorization", `Bearer ${accessToken}`);
   headers.set(OPENAI_HEADERS.ACCOUNT_ID, accountId);
   headers.set(OPENAI_HEADERS.BETA, OPENAI_HEADER_VALUES.BETA_RESPONSES);
-  headers.set(OPENAI_HEADERS.ORIGINATOR, OPENAI_HEADER_VALUES.ORIGINATOR_CODEX);
-  headers.set(OPENAI_HEADERS.VERSION, PLUGIN_VERSION); // Required for gpt-5.3-codex
-  headers.set("User-Agent", getCodexUserAgent());
+  // Don't set originator header - we want standard OpenAI responses, not Codex CLI format
 
   const cacheKey = opts?.promptCacheKey;
   if (cacheKey) {
